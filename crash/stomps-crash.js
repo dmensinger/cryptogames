@@ -1,3 +1,20 @@
+/********************* Stomps Crash **************************\
+*
+* Version     : 1.0
+* Author      : stomps
+*
+* This script is an advanced script for playing Crash on sites such as bc.game. 
+*
+* USE AT YOUR OWN RISK
+* Does not guarantee you will not lose. This is not a get rich quick script.
+* For best results run at maximum of 0.01% of balance
+* For example, if balance is 1 your bet should be 0.0001 or lower.
+* Keep dev console open for statistics.
+*
+* Good Luck
+*
+*/
+
 var config = {
 	bet: { label: 'bet', value: currency.minAmount, type: 'number' },
 	basePayout: { label: 'base payout', value: 1.5, type: 'number' },

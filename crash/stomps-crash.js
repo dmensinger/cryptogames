@@ -1,15 +1,24 @@
 /********************* Stomps Crash **************************\
 *
-* Version     : 1.0
+* Version     : 1.1
 * Author      : stomps
 *
 * This script is an advanced script for playing Crash on sites such as bc.game. 
 *
 * USE AT YOUR OWN RISK
-* Does not guarantee you will not lose. This is not a get rich quick script.
-* For best results run at maximum of 0.01% of balance
-* For example, if balance is 1 your bet should be 0.0001 or lower.
-* Keep dev console open for statistics.
+* Does not guarantee you will not lose. 
+* This is not a get rich quick script, plan to run it for hours, days, weeks or longer.
+*
+* For best results run at MAXIMUM of 0.01% of balance
+* For example, if your balance is 1 DOGE your bet should never be more than 0.0001 DOGE. Start small!
+*
+* The script will keep track of what is lost and attempt to always win it back, plus profit.
+* It will also randomly make larger bets to increase profit gained.
+*
+* Important! There is no stop loss! This script will only stop if and when entire balance is lost.
+* The loweerr your base bet, the less chance you have of losing your entire pot, but the longer it will take to gain profit. 
+*
+* Keep dev console open for detailed statistics.
 *
 * Good Luck
 *
@@ -18,7 +27,6 @@
 var config = {
 	bet: { label: 'bet', value: currency.minAmount, type: 'number' },
 	basePayout: { label: 'base payout', value: 1.5, type: 'number' },
-	stop: { value: 10000, type: 'number', label: 'stop if payout >' },
 	customTitle: { label: 'Customizations', type: 'title' },
 	countLossInit: { value: 8 , type: 'number', label: 'Count Loss Init' },
 	countLossMax: { value: 30 , type: 'number', label: 'Count Loss Max' },
@@ -131,7 +139,7 @@ function main() {
 					betAmount = betAmount / 2;
 				}
 				
-				currentPayout = 1.6;
+				currentPayout = config.basePayout + 0.1; // + 0.1 so we're making profit
 			}
 
 			log.success('We won, next payout ' + currentPayout + ' x');
@@ -146,7 +154,7 @@ function main() {
 			profit -= betAmount;
 
 			// set payout
-			currentPayout = 1.6;
+			currentPayout = config.basePayout + 0.1; // + 0.1 so we're making profit
 
 			// if we get to 4 times bet amount lets stop multiplying
 			if(betAmount < config.bet.value * 4) {
@@ -214,15 +222,6 @@ function main() {
 			console.log("Times Recovered Loss: " + timesRecovered);
 			console.log('~~~  Update Completed  ~~~');
 	
-		}
-
-		if (currentPayout > config.stop.value) {
-			log.error(
-				'Was about to bet with payout' +
-					currentPayout +
-					'which triggers the stop'
-			);
-			engine.stop();
 		}
 		
 	});

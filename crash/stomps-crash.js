@@ -16,7 +16,7 @@
 * It will also randomly make larger bets to increase profit gained.
 *
 * Important! There is no stop loss! This script will only stop if and when entire balance is lost.
-* The loweerr your base bet, the less chance you have of losing your entire pot, but the longer it will take to gain profit. 
+* The lower your base bet, the less chance you have of losing your entire pot, but the longer it will take to gain profit. 
 *
 * Keep dev console open for detailed statistics.
 *
@@ -139,10 +139,11 @@ function main() {
 					betAmount = betAmount / 2;
 				}
 				
-				currentPayout = config.basePayout + 0.1; // + 0.1 so we're making profit
+				currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
 			}
 
 			log.success('We won, next payout ' + currentPayout + ' x');
+
 		} else {
 
 			// reset globals
@@ -154,7 +155,7 @@ function main() {
 			profit -= betAmount;
 
 			// set payout
-			currentPayout = config.basePayout + 0.1; // + 0.1 so we're making profit
+			currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
 
 			// if we get to 4 times bet amount lets stop multiplying
 			if(betAmount < config.bet.value * 4) {
@@ -187,7 +188,7 @@ function main() {
 					}
 
 					// Count loss got too high, lets up the payout
-					currentPayout = (countLoss / payoutMultiplier) + 1.2
+					currentPayout = (countLoss / payoutMultiplier) + 1.2;
 				}
 			}
 

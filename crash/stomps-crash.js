@@ -32,7 +32,8 @@ var config = {
 	countLossMax: { value: 30 , type: 'number', label: 'Count Loss Max' },
 	diceMin: { value: 2 , type: 'number', label: 'Dice Min' },
 	diceMax: { value: 8 , type: 'number', label: 'Dice Max' },
-	winAdd: { label: 'win payout +', value: 0.3, type: 'number' }
+	winAdd: { label: 'win payout +', value: 0.3, type: 'number' },
+	stopLoss: { label: 'Stop Loss +', value: 125, type: 'number' },
 };
 
 function main() {
@@ -43,6 +44,10 @@ function main() {
 		totalGain = 0,
 		bonus = 0,
 		gamesPlayed = 0,
+		gamesLost = 0,
+		roundLoss = 0,
+		highestLoss = 0,
+		stopLoss = config.stopLoss.value,
 		startTime = new Date(),
 		endTime = new Date(),
 		timeDiff = (endTime - startTime),
@@ -127,6 +132,11 @@ function main() {
 						countLoss = 0;
 						betAmount = config.bet.value * 3;
 						timesRecovered++;
+						roundLoss = gamesLost;
+						if (roundLoss > highestLoss) {
+							highestLoss = roundLoss;
+						}
+						gamesLost = 0;
 						log.success('Success! Loss fully recovered! Total gain: ' + totalGain);
 					} else {
 						countLoss -= 1;
@@ -141,8 +151,8 @@ function main() {
 				
 				currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
 			}
-
-			log.success('We won, next payout ' + currentPayout + ' x');
+				
+			log.success('We won');
 
 		} else {
 
@@ -180,6 +190,8 @@ function main() {
 
 				// If countLoss is too high lets attempt to lower it
 				if(countLoss > config.countLossInit.value) {
+					gamesLost++;
+					log.info('Loss Recovery Games: ' + gamesLost);
 
 					// if we get too high payout, double bet and half payout
 					if(countLoss > config.countLossMax.value) {
@@ -189,10 +201,16 @@ function main() {
 
 					// Count loss got too high, lets up the payout
 					currentPayout = (countLoss / payoutMultiplier) + 1.2;
+
+					// Stop game if we hit stop loss
+					if (gamesLost > stopLoss) {
+						log.error('Stop loss hit, GAME OVER!');
+						game.stop();
+					}
 				}
 			}
 
-			log.error('We lost, next payout ' + currentPayout + ' x');
+			log.error('We lost');
 		}
 
 		function rollDice(min, max) {
@@ -221,6 +239,7 @@ function main() {
 			console.log("Dice Attempts: " + diceAttempts);
 			console.log("Dice Wins: " + diceWins + ' | Profit = ' + diceWinTotal);
 			console.log("Times Recovered Loss: " + timesRecovered);
+			console.log("Highest Loss Recovery: " + highestLoss);
 			console.log('~~~  Update Completed  ~~~');
 	
 		}

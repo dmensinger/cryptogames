@@ -1,14 +1,39 @@
+/********************* Stomps Dice **************************\
+*
+* Version     : 1.0
+* Author      : stomps
+*
+* This script is an advanced script for playing Hashdice on sites such as bc.game. 
+*
+* USE AT YOUR OWN RISK
+* Does not guarantee you will not lose. 
+* This is not a get rich quick script, plan to run it for hours, days, weeks or longer.
+*
+* For best results run at MAXIMUM of 0.01% of balance
+* For example, if your balance is 1 DOGE your bet should never be more than 0.0001 DOGE. Start small!
+*
+* The script will keep track of what is lost and attempt to always win it back, plus profit.
+* It will also randomly make larger bets to increase profit gained.
+*
+* Important! Set a Stop Loss! Stop loss is how many games in a row during loss recovery.
+* The lower your base bet, the less chance you have of hitting your stop loss, but the longer it will take to gain profit. 
+*
+* Keep dev console open for detailed statistics.
+*
+* Good Luck
+*
+*/
+
 var config = {
 	bet: { label: 'bet', value: currency.minAmount, type: 'number' },
 	basePayout: { label: 'base payout', value: 1.5, type: 'number' },
-	winAdd: { label: 'win payout +', value: 0.3, type: 'number' },
 	customTitle: { label: 'Customizations', type: 'title' },
-	modeInit: { value: 6 , type: 'number', label: 'Mode Init (Minutes)' },
-	countLossMax: { value: 30 , type: 'number', label: 'Count Loss Max' },
-	lossRecoveryStart: { value: 8 , type: 'number', label: 'Loss Recovery Start' },
-	stopLossStart: { value: 100 , type: 'number', label: 'Stop Loss Start' },
-	diceMin: { value: 3 , type: 'number', label: 'Dice Min' },
-	diceMax: { value: 12 , type: 'number', label: 'Dice Max' },
+	countLossInit: { value: 8, type: 'number', label: 'Count Loss Init' },
+	countLossMax: { value: 30, type: 'number', label: 'Count Loss Max' },
+	diceMin: { value: 2, type: 'number', label: 'Dice Roll Min' },
+	diceMax: { value: 8, type: 'number', label: 'Dice Roll Max' },
+	winAdd: { label: 'Win Payout +', value: 0.3, type: 'number' },
+	stopLoss: { label: 'Stop Loss +', value: 125, type: 'number' },
 };
 
 function main() {
@@ -16,31 +41,20 @@ function main() {
 		betAmount = config.bet.value,
 		countWin = 0,
 		countLoss = 0,
-		countLossMax = config.countLossMax.value,
-		lossRecoveryStart = config.lossRecoveryStart.value,
-		totalLoss = 0,
 		totalGain = 0,
-		payoutMultiplier,
 		bonus = 0,
 		gamesPlayed = 0,
-		gameMode,
-		profitMode = 0,
-		modeInit = config.modeInit.value,
+		gamesLost = 0,
+		roundLoss = 0,
+		highestLoss = 0,
+		stopLoss = config.stopLoss.value,
 		startTime = new Date(),
 		endTime = new Date(),
 		timeDiff = (endTime - startTime),
-		sessionStartTime = new Date(),
-		sessionTimeDiff = (endTime - sessionStartTime),
 		startBalance = currency.amount,
 		endBalance = 0,
 		profit = 0,
-		sessionProfit = 0,
-		sessionProfitHigh = 0,
 		profitPerMin = 0,
-		maxStopLoss = -(config.stopLossStart.value),
-		stopLoss = maxStopLoss,
-		stopLossAdjustment = 0,
-		session = 1,
 		bigWinAttempts = 0,
 		bigWins = 0,
 		bigWinTotal = 0,
@@ -48,249 +62,180 @@ function main() {
 		diceAttempts = 0,
 		diceCount = false,
 		diceWins = 0,
-		diceWinTotal = 0;
+		diceWinTotal = 0,
 		diceMin = config.diceMin.value,
 		diceMax = config.diceMax.value,
+		payoutMultiplier = 2,
 		timesRecovered = 0;
 
+	game.onBet = function () {
+		game.bet(betAmount, currentPayout).then(function (payout) {
+			gamesPlayed++;
 
-	engine.on('GAME_STARTING', function() {
-		engine.bet(betAmount, currentPayout);
-	});
-
-	engine.on('GAME_ENDED', function(data) {
-
-		gamesPlayed++;
-
-		// we won..
-		if (data.profitAmount > 0) {
-
-			// account for dice wins
-			if(diceCount) {
-				diceWins++;
-				diceWinTotal += (betAmount * currentPayout) - betAmount;
+			// we won
+			if (payout > 1) {
+					
+				// record profit
 				profit += (betAmount * currentPayout) - betAmount;
-				log.success('Dice roll won! Profit = ' + (betAmount * currentPayout) - betAmount);
-				diceCount = false;
-			} else {
-				// record sessionProfit
-				sessionProfit += (betAmount * currentPayout) - betAmount;
-			}
 
-
-			// No loss recovery
-			if(betAmount <= config.bet.value) {
-				countWin++;
-
-				// reset bet amount
-				betAmount = config.bet.value;
-
-				// Initiate game modes
-				if(sessionTimeDiff > modeInit ) {
-					gameMode = 'Profit Mode';
+				// account for dice wins
+				if(diceCount) {
+					diceWins++;
+					diceWinTotal += (betAmount * currentPayout) - betAmount;
+					log.success('Dice roll won! profit = ' + diceWinTotal);
+					diceCount = false;
 				}
 
-				// increase payout as per config
-				currentPayout += config.winAdd.value;
+				// No loss recovery
+				if(betAmount <= config.bet.value) {
+					countWin++;
 
-				// go big
-				if(countWin > 3) {
-					bigWinAttempts++;
-					bonus += 1;
-					currentPayout = currentPayout + bonus;
-				}
+					// reset bet amount
+					betAmount = config.bet.value;
 
-				if(countWin > 4) {
-					bigWins++;
-					bigWinTotal += (betAmount * currentPayout) - betAmount;
-				}
-			
-			// Loss recovery
-			} else {
+					// increase payout as per config
+					currentPayout += config.winAdd.value;
 
-				// if countLoss exists
-				if(countLoss > 1) {
-					
-					// If loss fully recovered
-					if(currentPayout === (countLoss / payoutMultiplier) + 1.1) {
-						totalGain = (countLoss / payoutMultiplier) * betAmount;
-						countLoss = 0;
-						betAmount = config.bet.value * 3;
-						timesRecovered++;
-						log.success('Success! Loss fully recovered! Total gain: ' + totalGain);
-					} else {
-						countLoss -= 1;
+					// go big
+					if(countWin > 3) {
+						bigWinAttempts++;
+						bonus += 5;
+						currentPayout = currentPayout + bonus;
 					}
 
-					log.error('Countloss decreased to ' + countLoss);
+					if(countWin > 4) {
+						bigWins++;
+						bigWinTotal += (betAmount * currentPayout) - betAmount;
+					}
 				
-				// if no countLoss, start reduce bet 
+				// Loss recovery
 				} else {
-					betAmount = betAmount / 2;
+
+					// if countLoss exists
+					if(countLoss > 1) {
+						
+						// If loss fully recovered
+						if(currentPayout === (countLoss / payoutMultiplier) + 1.2) {
+							totalGain = (countLoss / payoutMultiplier) * betAmount;
+							countLoss = 0;
+							betAmount = config.bet.value * 3;
+							timesRecovered++;
+							roundLoss = gamesLost;
+							if (roundLoss > highestLoss) {
+								highestLoss = roundLoss;
+							}
+							gamesLost = 0;
+							log.success('Success! Loss fully recovered! Total gain: ' + totalGain);
+						} else {
+							countLoss -= 1;
+						}
+
+						log.error('Countloss decreased to ' + countLoss);
 					
-					// Set min bet amount
-					if(betAmount < config.bet.value) {
-						betAmount = config.bet.value;
+					// if no countLoss, start reduce bet 
+					} else {
+						betAmount = betAmount / 2;
 					}
+					
+					currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
 				}
 				
-				currentPayout = 1.7;
-			}
+				log.success('We won');
+				log.info('Betting ' + betAmount + ' at ' + currentPayout + ' x');
 
-			log.success('We won, next payout ' + currentPayout + ' x');
-		} else {
-
-			// reset globals
-			countWin = 0;
-			bonus = 0;
-			diceCount = false;
-
-			// record loss
-			sessionProfit -= betAmount;
-
-			// Initiate game modes
-			if(sessionTimeDiff < modeInit ) {
-				gameMode = 'Initiating';
-			}
-
-			if(gameMode == 'Initiating') {
-
-				// if sessionProfit is less than stop loss, take loss
-				if(sessionProfit < stopLoss) {
-					resetGame();
-				}
-
+			// we lost
 			} else {
 
-				stopLoss = sessionProfitHigh / 1.15;
+				// reset globals
+				countWin = 0;
+				bonus = 0;
+				diceCount = false;
 
-				// if sessionProfit is less than stop loss, take gains
-				if(sessionProfit < stopLoss) {
-					profitMode++;
-					resetGame();
-				}
-			}
+				// record loss
+				profit -= betAmount;
 
-			// set payout
-			currentPayout = 1.7;
+				// set payout
+				currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
 
-			// if we get to 4 times bet amount lets stop multiplying
-			if(betAmount < config.bet.value * 4) {
+				// if we get to 4 times bet amount lets stop multiplying
+				if(betAmount < config.bet.value * 4) {
 
-				// double bet
-				betAmount = betAmount * 2;
+					// double beta
+					betAmount = betAmount * 2;
 
-				// roll dice
-				diceRoll = rollDice(1,4);
-				log.error('Dice roll:  ' + diceRoll);
+					// roll dice
+					diceRoll = rollDice(1,4);
+					log.error('Dice roll:  ' + diceRoll);
 
-				if(diceRoll === 4) {
-					currentPayout = rollDice(diceMin, diceMax);
-					diceCount = true,
-					diceAttempts++;
-					log.success('Dice rolled a ' + diceRoll + ', going for bonus win!');
-				}
-
-			} else {
-
-				countLoss += 2;
-				log.error('Countloss increased to ' + countLoss);
-					
-				// record sessionProfit at time of first loss
-				if(countLoss === 2 || countLoss === 3) {
-					sessionProfitHigh = sessionProfit.toFixed(6);
-				}
-
-				// If countLoss is too high lets attempt to lower it
-				if(countLoss > lossRecoveryStart) {
-
-					payoutMultiplier = 2;
-					totalLoss += betAmount;
-
-					// if we get too high payout, double bet and half payout
-					if(countLoss > countLossMax) {
-						betAmount *= 2;
-						countLoss /= 2;
+					if(diceRoll === 4) {
+						currentPayout = rollDice(diceMin, diceMax);
+						diceCount = true,
+						diceAttempts++;
+						log.success('Dice rolled a ' + diceRoll + ', going for bonus win!');
 					}
 
-					// Count loss got too high, lets up the payout
-					currentPayout = (countLoss / payoutMultiplier) + 1.1 // + 1 so we're making sessionProfit;
+				} else {
+					countLoss += 2;
+					log.error('Countloss increased to ' + countLoss);
+
+					// If countLoss is too high lets attempt to lower it
+					if(countLoss > config.countLossInit.value) {
+						gamesLost++;
+						log.info('Loss Recovery Games: ' + gamesLost);
+
+						// if we get too high payout, double bet and half payout
+						if(countLoss > config.countLossMax.value) {
+							betAmount *= 2;
+							countLoss /= 2;
+						}
+
+						// Count loss got too high, lets up the payout
+						currentPayout = (countLoss / payoutMultiplier) + 1.2;
+
+						// Stop game if we hit stop loss
+						if (gamesLost > stopLoss) {
+							log.error('Stop loss hit, GAME OVER!');
+							game.stop();
+						}
+					}
 				}
+
+				log.error('We lost');
+				log.info('Betting ' + betAmount + ' at ' + currentPayout + ' x');
+
 			}
 
-			log.error('We lost, next payout ' + currentPayout + ' x');
-		}
-
-		function resetGame() {
-			session += 1;
-			sessionStartTime = new Date();
-			sessionTimeDiff = (endTime - sessionStartTime);
-			betAmount = config.bet.value;
-			countLoss = 0;
-			profit += sessionProfit;
-			gameMode = 'Initializing';
-			sessionProfit = 0;
-			sessionProfitHigh = 0;
-
-			if(profit > 0) {
-				stopLossAdjustment = profit;
-
-				if(profit > maxStopLoss) {
-					stopLossAdjustment = profit / 2;
-				}
-
-				if(profit > maxStopLoss * 3) {
-					stopLossAdjustment = profit / 4;
-				}
-
-			} else {
-				stopLossAdjustment = 0;
+			function rollDice(min, max) {
+				return min + Math.floor(Math.random() * (max-min + 1))
 			}
 
-			stopLoss = maxStopLoss - stopLossAdjustment;
-		}
+			// Logging
+			gamesPlayed = gamesPlayed.toString();
 
-		function rollDice(min, max) {
-			return min + Math.floor(Math.random() * (max-min + 1))
-		}
+			console.log('Games Played: ' + gamesPlayed);
 
-		// Logging
-		gamesPlayed = gamesPlayed.toString();
+			if (gamesPlayed) {
+				endTime = new Date();
+				timeDiff = ((endTime - startTime) / 1000 )/ 60;
+				endBalance = currency.amount;
+				profitPerMin = (profit / timeDiff);
 
-		console.log('Games Played: ' + gamesPlayed);
-
-		if (gamesPlayed) {
-			endTime = new Date();
-			timeDiff = ((endTime - startTime) / 1000 )/ 60;
-			sessionTimeDiff = ((endTime - sessionStartTime) / 1000 )/ 60;
-			endBalance = currency.amount;
-			profitPerMin = (sessionProfit / timeDiff);
-
-			console.clear();
-			console.log('---  Dice Run Details  ---');
-			console.log("Games Played " + gamesPlayed + " Times in " + timeDiff.toFixed(2) + " minutes ");
-			console.log("Begining Bank " + startBalance.toFixed(7) + " Current Bank " + currency.amount.toFixed(7) + " " + currency.currencyName);
-			console.log("Profit Per Minute " + profitPerMin.toFixed(5) + ' ' + currency.currencyName);
-			console.log("Big Win Attempts: " + bigWinAttempts);
-			console.log("Total Big Wins: " + bigWins + ' | Profit = ' + bigWinTotal);
-			console.log("Dice Attempts: " + diceAttempts);
-			console.log("Dice Wins: " + diceWins + ' | Profit = ' + diceWinTotal);
-			console.log("Profit Modes Achieved: " + profitMode);
-			console.log("Times Recovered Loss: " + timesRecovered);
-			console.log(' ');
-			console.log("Total Profit: " + profit);
-			console.log(' ');
-			console.log('---  Session Details  ---');
-			console.log("Session: " + session);
-			console.log("Session Time: " + sessionTimeDiff.toFixed(2) + " minutes ");
-			console.log("Game Mode: " + gameMode);
-			console.log("Stop Loss: " + stopLoss);
-			console.log("Profit Highest: " + sessionProfitHigh + ' ' + currency.currencyName);
-			console.log("Net Session Profit " + sessionProfit.toFixed(5) + ' ' + currency.currencyName);
-			console.log('---  Update Completed  ---');
-	
-		}
-
+				console.clear();
+				console.log('~~~  Crash Stats Update  ~~~');
+				console.log("Games Played " + gamesPlayed + " Times in " + timeDiff.toFixed(2) + " minutes ");
+				console.log("Begining Bank " + startBalance.toFixed(7) + " Current Bank " + currency.amount.toFixed(7) + " " + currency.currencyName);
+				console.log("Profit Per Minute " + profitPerMin.toFixed(5) + ' ' + currency.currencyName);
+				console.log("Session Net profit " + profit.toFixed(5) + ' ' + currency.currencyName);
+				console.log("Big Win Attempts: " + bigWinAttempts);
+				console.log("Total Big Wins: " + bigWins + ' | Profit = ' + bigWinTotal);
+				console.log("Dice Attempts: " + diceAttempts);
+				console.log("Dice Wins: " + diceWins + ' | Profit = ' + diceWinTotal);
+				console.log("Times Recovered Loss: " + timesRecovered);
+				console.log("Highest Loss Recovery: " + highestLoss);
+				console.log('~~~  Update Completed  ~~~');
 		
-	});
+			}
+
+		});
+	};
 }

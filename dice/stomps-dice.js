@@ -25,15 +25,20 @@
 */
 
 var config = {
-	bet: { label: 'bet', value: currency.minAmount, type: 'number' },
-	basePayout: { label: 'base payout', value: 1.5, type: 'number' },
+	preface: { label: 'Important', type: 'title' },
+	notice1: { label: 'For best results run at MAXIMUM of 0.01% of balance.', type: 'message' },
+	notice2: { label: 'For example, if your balance is 1 DOGE your bet should never bet more than 0.0001 DOGE. A bet of 0.0001 with a balance of 1 will allow 68 games lost in loss recovery mode with default settings. The more games you can lose in loss recovery, the better your odds.', type: 'message' },
+	settingsTitle: { label: 'Core Settings', type: 'title' },
+	bet: { label: 'Bet', value: currency.minAmount, type: 'number' },
+	basePayout: { label: 'Base Payout (generally be 1.5 for best results)', value: 1.5, type: 'number' },
+	winAdd: { label: 'Win Payout (amount to increase payout by on win)', value: 0.3, type: 'number' },
+	stopLoss: { label: 'Stop Loss (highest number of games lost in loss recovery mode before taking loss)', value: 100, type: 'number' },
 	customTitle: { label: 'Customizations', type: 'title' },
+	customDesc: { label: 'Adjust the following settings at your own risk.', type: 'message' },
 	countLossInit: { value: 8, type: 'number', label: 'Count Loss Init' },
 	countLossMax: { value: 30, type: 'number', label: 'Count Loss Max' },
 	diceMin: { value: 2, type: 'number', label: 'Dice Roll Min' },
 	diceMax: { value: 8, type: 'number', label: 'Dice Roll Max' },
-	winAdd: { label: 'Win Payout +', value: 0.3, type: 'number' },
-	stopLoss: { label: 'Stop Loss +', value: 125, type: 'number' },
 };
 
 function main() {
@@ -221,7 +226,7 @@ function main() {
 				profitPerMin = (profit / timeDiff);
 
 				console.clear();
-				console.log('~~~  Crash Stats Update  ~~~');
+				console.log('~~~ Dice Stats Update  ~~~');
 				console.log("Games Played " + gamesPlayed + " Times in " + timeDiff.toFixed(2) + " minutes ");
 				console.log("Begining Bank " + startBalance.toFixed(7) + " Current Bank " + currency.amount.toFixed(7) + " " + currency.currencyName);
 				console.log("Profit Per Minute " + profitPerMin.toFixed(5) + ' ' + currency.currencyName);

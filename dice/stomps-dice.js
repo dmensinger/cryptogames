@@ -27,18 +27,21 @@
 var config = {
 	preface: { label: 'Important', type: 'title' },
 	notice1: { label: 'For best results run at MAXIMUM of 0.01% of balance.', type: 'message' },
-	notice2: { label: 'For example, if your balance is 1 DOGE your bet should never bet more than 0.0001 DOGE. A bet of 0.0001 with a balance of 1 will allow 68 games lost in loss recovery mode with default settings. The more games you can lose in loss recovery, the better your odds.', type: 'message' },
+	notice2: { label: 'For example, if your balance is 1 DOGE your bet should never bet more than 0.0001 DOGE. A bet of 0.0001 with a balance of 1 will allow 68 games lost in loss recovery mode with default settings. The losses you can sustain in loss recovery mode, the better your odds.', type: 'message' },
 	settingsTitle: { label: 'Core Settings', type: 'title' },
 	bet: { label: 'Bet', value: currency.minAmount, type: 'number' },
-	basePayout: { label: 'Base Payout (generally be 1.5 for best results)', value: 1.5, type: 'number' },
+	basePayout: { label: 'Base Payout (generally 1.6 for best results)', value: 1.6, type: 'number' },
 	winAdd: { label: 'Win Payout (amount to increase payout by on win)', value: 0.3, type: 'number' },
 	stopLoss: { label: 'Stop Loss (highest number of games lost in loss recovery mode before taking loss)', value: 100, type: 'number' },
-	customTitle: { label: 'Customizations', type: 'title' },
+	customTitle: { label: 'Advanced Customizations', type: 'title' },
 	customDesc: { label: 'Adjust the following settings at your own risk.', type: 'message' },
+	payoutBonus: { value: 1.2, type: 'number', label: 'Payout Bonus (applied at loss recovery for added bonus)' },
 	countLossInit: { value: 8, type: 'number', label: 'Count Loss Init' },
 	countLossMax: { value: 30, type: 'number', label: 'Count Loss Max' },
 	diceMin: { value: 2, type: 'number', label: 'Dice Roll Min' },
 	diceMax: { value: 8, type: 'number', label: 'Dice Roll Max' },
+	bigWinInit: { value: 3, type: 'number', label: 'Big Win Init (after how many base wins to apply multiplier below)' },
+	bigWinAmount: { value: 4, type: 'number', label: 'Big Win Bonus Multiplier (amount to increase payout if going for big wins)' },
 };
 
 function main() {
@@ -47,7 +50,6 @@ function main() {
 		countWin = 0,
 		countLoss = 0,
 		totalGain = 0,
-		bonus = 0,
 		gamesPlayed = 0,
 		gamesLost = 0,
 		roundLoss = 0,
@@ -63,6 +65,8 @@ function main() {
 		bigWinAttempts = 0,
 		bigWins = 0,
 		bigWinTotal = 0,
+		bigWinInit = config.bigWinInit.value,
+		bonusMultiplier = config.bigWinAmount.value,
 		diceRoll,
 		diceAttempts = 0,
 		diceCount = false,
@@ -71,6 +75,7 @@ function main() {
 		diceMin = config.diceMin.value,
 		diceMax = config.diceMax.value,
 		payoutMultiplier = 2,
+		payoutBonus = config.payoutBonus.value,
 		timesRecovered = 0;
 
 	game.onBet = function () {
@@ -102,9 +107,9 @@ function main() {
 					currentPayout += config.winAdd.value;
 
 					// go big
-					if(countWin > 3) {
+					if(countWin > bigWinInit) {
 						bigWinAttempts++;
-						bonus += 5;
+						bonus += bonusMultiplier;
 						currentPayout = currentPayout + bonus;
 					}
 
@@ -120,7 +125,7 @@ function main() {
 					if(countLoss > 1) {
 						
 						// If loss fully recovered
-						if(currentPayout === (countLoss / payoutMultiplier) + 1.2) {
+						if(currentPayout === (countLoss / payoutMultiplier) + payoutBonus) {
 							totalGain = (countLoss / payoutMultiplier) * betAmount;
 							countLoss = 0;
 							betAmount = config.bet.value * 3;
@@ -142,7 +147,8 @@ function main() {
 						betAmount = betAmount / 2;
 					}
 					
-					currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
+					// reset payout
+					currentPayout = config.basePayout.value
 				}
 				
 				log.success('We won');
@@ -159,8 +165,8 @@ function main() {
 				// record loss
 				profit -= betAmount;
 
-				// set payout
-				currentPayout = config.basePayout.value + 0.1; // + 0.1 so we're making profit
+				// reset payout
+				currentPayout = config.basePayout.value
 
 				// if we get to 4 times bet amount lets stop multiplying
 				if(betAmount < config.bet.value * 4) {
@@ -195,7 +201,7 @@ function main() {
 						}
 
 						// Count loss got too high, lets up the payout
-						currentPayout = (countLoss / payoutMultiplier) + 1.2;
+						currentPayout = (countLoss / payoutMultiplier) + payoutBonus;
 
 						// Stop game if we hit stop loss
 						if (gamesLost > stopLoss) {

@@ -15,8 +15,8 @@
 * The script will keep track of what is lost and attempt to always win it back, plus profit.
 * It will also randomly make larger bets to increase profit gained.
 *
-* Important! There is no stop loss! This script will only stop if and when entire balance is lost.
-* The lower your base bet, the less chance you have of losing your entire pot, but the longer it will take to gain profit. 
+* Important! Set a Stop Loss! Stop loss is how many games in a row during loss recovery.
+* The lower your base bet, the less chance you have of hitting your stop loss, but the longer it will take to gain profit. 
 *
 * Keep dev console open for detailed statistics.
 *
@@ -27,10 +27,10 @@
 var config = {
 	preface: { label: 'Important', type: 'title' },
 	notice1: { label: 'For best results run at MAXIMUM of 0.01% of balance.', type: 'message' },
-	notice2: { label: 'For example, if your balance is 1 DOGE your bet should never bet more than 0.0001 DOGE. A bet of 0.0001 with a balance of 1 will allow 68 games lost in loss recovery mode with default settings. The more games you can lose in loss recovery, the better your odds.', type: 'message' },
+	notice2: { label: 'For example, if your balance is 1 DOGE your bet should never bet more than 0.0001 DOGE. A bet of 0.0001 with a balance of 1 will allow 68 games lost in loss recovery mode with default settings. The losses you can sustain in loss recovery mode, the better your odds.', type: 'message' },
 	settingsTitle: { label: 'Core Settings', type: 'title' },
 	bet: { label: 'Bet', value: currency.minAmount, type: 'number' },
-	basePayout: { label: 'Base Payout (generally be 1.5 for best results)', value: 1.5, type: 'number' },
+	basePayout: { label: 'Base Payout (generally 1.5 for best results)', value: 1.5, type: 'number' },
 	winAdd: { label: 'Win Payout (amount to increase payout by on win)', value: 0.3, type: 'number' },
 	stopLoss: { label: 'Stop Loss (highest number of games lost in loss recovery mode before taking loss)', value: 100, type: 'number' },
 	customTitle: { label: 'Customizations', type: 'title' },

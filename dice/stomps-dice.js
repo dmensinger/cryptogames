@@ -35,11 +35,11 @@ var config = {
 	stopLoss: { label: 'Stop Loss (highest number of games lost in loss recovery mode before taking loss)', value: 100, type: 'number' },
 	customTitle: { label: 'Advanced Customizations', type: 'title' },
 	customDesc: { label: 'Adjust the following settings at your own risk.', type: 'message' },
-	payoutBonus: { value: 1.2, type: 'number', label: 'Payout Bonus (applied at loss recovery for added bonus)' },
 	countLossInit: { value: 8, type: 'number', label: 'Count Loss Init' },
 	countLossMax: { value: 30, type: 'number', label: 'Count Loss Max' },
 	diceMin: { value: 2, type: 'number', label: 'Dice Roll Min' },
 	diceMax: { value: 8, type: 'number', label: 'Dice Roll Max' },
+	payoutBonus: { value: 1.2, type: 'number', label: 'Payout Bonus (applied at loss recovery bets for added bonus)' },
 	bigWinInit: { value: 3, type: 'number', label: 'Big Win Init (after how many base wins to apply multiplier below)' },
 	bigWinAmount: { value: 4, type: 'number', label: 'Big Win Bonus Multiplier (amount to increase payout if going for big wins)' },
 };
@@ -113,7 +113,7 @@ function main() {
 						currentPayout = currentPayout + bonus;
 					}
 
-					if(countWin > 4) {
+					if(countWin > bigWinInit + 1) {
 						bigWins++;
 						bigWinTotal += (betAmount * currentPayout) - betAmount;
 					}
